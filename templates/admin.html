@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2em;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        form {
+            display: inline;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 2px;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+
+    <h2>User List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user[0] | e }}</td>
+                <td>{{ user[1] | e }}</td>
+                <td>{{ user[2] | e }}</td>
+                <td>
+                    {% if user[2] != 'admin' %}
+                    <form method="POST">
+                        <input type="hidden" name="username" value="{{ user[0] | e }}">
+                        <input type="hidden" name="action" value="add">
+                        <button type="submit">Make Analyst</button>
+                    </form>
+                    <form method="POST">
+                        <input type="hidden" name="username" value="{{ user[0] | e }}">
+                        <input type="hidden" name="action" value="remove">
+                        <button type="submit">Remove Analyst</button>
+                    </form>
+                    {% else %}
+                    (Admin)
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>

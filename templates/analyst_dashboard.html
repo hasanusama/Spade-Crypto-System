@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyst Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to the Analyst Dashboard</h1>
+    <p>Logged in as: {{ username }}</p>
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>  <!-- Logout Link -->
+
+    <form method="POST">
+        <label for="option">Select Option:</label>
+        <select name="option" id="option">
+            <option value="1">Hypnogram</option>
+            <option value="2">DNA</option>
+        </select><br><br>
+
+        <label for="max_vec_length">Enter Maximum Vector Length:</label>
+        <input type="number" id="max_vec_length" name="max_vec_length" required><br><br>
+
+        <label for="search_value">Enter Search Value:</label>
+        <input type="text" id="search_value" name="search_value" required><br><br>
+
+        <button type="submit">Process Data</button>
+    </form>
+
+    {% if result %}
+        <h3>Results</h3>
+        {% if result.error %}
+            <p>Error: {{ result.error }}</p>
+        {% else %}
+            <p>Data: {{ result.data }}</p>
+            <p>Encryption Time: {{ result.encryption_time }} seconds</p>
+            <p>Decryption Time: {{ result.decryption_time }} seconds</p>
+            <p>Total Processing Time: {{ result.total_processing_time }} seconds</p>
+        {% endif %}
+    {% endif %}
+</body>
+</html>

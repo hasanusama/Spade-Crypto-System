@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2em;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        label {
+            display: inline-block;
+            width: 100px;
+            margin-top: 10px;
+        }
+        input[type="text"],
+        input[type="password"] {
+            padding: 5px;
+            width: 200px;
+        }
+        input[type="submit"] {
+            margin-top: 15px;
+            padding: 5px 10px;
+        }
+        .message {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Secure Programming</h1>
+
+{% if session.get('username') %}
+    <p>
+        Logged in as {{ session['username'] | e }} |
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </p>
+{% endif %}
+
+<h2>Login</h2>
+<form method="post" action="{{ url_for('login') }}">
+    <label>Username:</label>
+    <input type="text" name="username" required autocomplete="off"><br>
+    <label>Password:</label>
+    <input type="password" name="password" required autocomplete="off"><br>
+    <input type="submit" value="Login">
+</form>
+
+{% if error %}
+    <p class="message">{{ error | e }}</p>
+{% endif %}
+
+<p>Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a></p>
+
+</body>
+</html>
