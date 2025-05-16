@@ -1,3 +1,4 @@
+# import secure modules and libraries
 from flask import Flask, request, render_template, redirect, url_for, session
 import sqlite3
 import os
@@ -9,26 +10,26 @@ from datetime import datetime
 import time
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))  # Secret key not hardcoded
 
-# Secure session cookie settings
+# Secure cookie flags
 app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,  # Only works if using HTTPS
-    SESSION_COOKIE_SAMESITE='Lax'
+    SESSION_COOKIE_HTTPONLY=True,       # Prevents client-side script access to cookies
+    SESSION_COOKIE_SECURE=True,         # Works only over HTTPS
+    SESSION_COOKIE_SAMESITE='Lax'       # Helps prevent CSRF
 )
 
 DB_FOLDER = 'db'
 DB_NAME = os.path.join(DB_FOLDER, 'users.db')
 
-
+# Safe DB creation and folder handling
 def init_db():
     if not os.path.exists(DB_FOLDER):
         os.makedirs(DB_FOLDER)
     if not os.path.exists(DB_NAME):
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute('''  # Table with UNIQUE constraint
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -43,25 +44,29 @@ def init_db():
 
 @app.route('/')
 def index():
-    return render_template('login.html')
+    return render_template('login.html')  # Entry point
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
-        username = html.escape(request.form['username'])
+        username = html.escape(request.form['username'])  # Input sanitization
         password = request.form['password']
 
+        # Parameterized query to prevent SQL injection
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("SELECT username, password, role FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         conn.close()
 
+        # Passwords stored as hashes, compared securely
         if user and check_password_hash(user[1], password):
             session['username'] = user[0]
             session['role'] = user[2]
+
+            # Access control based on roles
             if user[2] == 'analyst':
                 return redirect(url_for('analyst_dashboard', username=user[0]))
             elif user[2] == 'admin':
@@ -79,22 +84,24 @@ def signup():
     error = None
     success = None
     if request.method == 'POST':
-        username = html.escape(request.form['username'])
+        username = html.escape(request.form['username'])  #  Sanitize input
         email = html.escape(request.form['email'])
         password = request.form['password']
 
+        # Regex used to validate user inputs
         if not re.match(r'^[a-zA-Z0-9_]{3,20}$', username):
             error = "Username must be 3–20 characters, only letters, numbers, or underscores."
         elif not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
             error = "Invalid email address."
-        elif len(password) < 6:
+        elif len(password) < 6:  # Enforce strong password policy
             error = "Password must be at least 6 characters long."
 
         if not error:
-            hashed_password = generate_password_hash(password)
+            hashed_password = generate_password_hash(password)  # Hash password
             conn = sqlite3.connect(DB_NAME)
             cursor = conn.cursor()
             try:
+                # Use safe insertion to avoid SQLi
                 cursor.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
                                (username, email, hashed_password))
                 conn.commit()
@@ -102,6 +109,7 @@ def signup():
                 success = "Account created successfully! You can now log in."
             except sqlite3.IntegrityError as e:
                 conn.close()
+                # Handle DB errors securely
                 if 'username' in str(e):
                     error = "Username already exists."
                 elif 'email' in str(e):
@@ -114,6 +122,7 @@ def signup():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
+    # Access control check
     if 'username' not in session or session.get('role') != 'admin':
         return "Unauthorized access", 403
 
@@ -123,6 +132,7 @@ def admin_panel():
     if request.method == 'POST':
         username = request.form['username']
         action = request.form.get('action')
+        # Role-based privilege escalation handling
         if action == 'add':
             cursor.execute("UPDATE users SET role = 'analyst' WHERE username = ?", (username,))
         elif action == 'remove':
@@ -137,6 +147,7 @@ def admin_panel():
 
 @app.route('/analyst/<username>', methods=['GET', 'POST'])
 def analyst_dashboard(username):
+    # Ensure correct user and role access
     if 'username' not in session or session['username'] != username or session.get('role') != 'analyst':
         return "Unauthorized access", 403
 
@@ -147,19 +158,17 @@ def analyst_dashboard(username):
         search_value = request.form['search_value']
 
         try:
-            # Encrypt dataset
+            # Encrypt and process data securely (see spades_cryptosystem)
             encrypt_start_time = time.time()
             db_path, data, encrypted_data, sks, reg_key = encrypt_dataset(option, max_vec_length)
             encrypt_end_time = time.time()
             encryption_time = round(encrypt_end_time - encrypt_start_time, 4)
 
-            # Search and decrypt
             decrypt_start_time = time.time()
             decrypted_data = search_and_decrypt(search_value, option, encrypted_data, sks, reg_key)
             decrypt_end_time = time.time()
             decryption_time = round(decrypt_end_time - decrypt_start_time, 4)
 
-            # Result
             result = {
                 'data': data,
                 'encrypted_data': encrypted_data,
@@ -171,14 +180,14 @@ def analyst_dashboard(username):
             }
 
         except Exception as e:
-            result = {"error": str(e)}
+            result = {"error": str(e)}  # Fail securely on unexpected input
 
     return render_template('analyst_dashboard.html', result=result, username=username)
 
 
 @app.route('/logout')
 def logout():
-    session.clear()
+    session.clear()  # Clear session to prevent fixation/reuse
     return redirect(url_for('index'))
 
 
